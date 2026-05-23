@@ -97,28 +97,42 @@ namespace AchievementHunter.Services
         /// </summary>
         public async Task<List<SteamAchievement>> GetAchievementsAsync(int appId)
         {
-            string endpoint = $"{_baseUrl}/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appId}&key={_apiKey}&steamid={_steamId}";
+            string statsEndpoint = $"{_baseUrl}/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appId}&key={_apiKey}&steamid={_steamId}";
+            string schemaEndpoint = $"{_baseUrl}/ISteamUserStats/GetSchemaForGame/v2/?key={_apiKey}&appid={appId}";
 
             try
             {
-                HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
+                // 1. Fetch your personal progress
+                HttpResponseMessage statsResponse = await _httpClient.GetAsync(statsEndpoint);
+                if (!statsResponse.IsSuccessStatusCode)
+                    return new List<SteamAchievement>();
 
-                // Steam returns a 400 Bad Request if a game simply has no achievements.
-                // We catch this gracefully instead of crashing the app.
-                if (!response.IsSuccessStatusCode)
+                var statsResult = JsonSerializer.Deserialize<PlayerAchievementsResponse>(await statsResponse.Content.ReadAsStringAsync());
+                var playerStats = statsResult?.PlayerStats?.Achievements ?? [];
+
+                // 2. Fetch the game dictionary (Images and Real Names)
+                HttpResponseMessage schemaResponse = await _httpClient.GetAsync(schemaEndpoint);
+                if (schemaResponse.IsSuccessStatusCode)
                 {
-                    return [];
+                    var schemaResult = JsonSerializer.Deserialize<GameSchemaResponse>(await schemaResponse.Content.ReadAsStringAsync());
+                    var schemaStats = schemaResult?.Game?.AvailableGameStats?.Achievements ?? [];
+
+                    // 3. Merge them together
+                    foreach (var stat in playerStats)
+                    {
+                        var match = schemaStats.Find(s => s.Name == stat.ApiName);
+                        if (match != null)
+                        {
+                            stat.DisplayName = match.DisplayName;
+                            stat.Description = match.Description;
+                            // If unlocked, use the colored icon. If locked, use the gray icon.
+                            stat.IconUrl = stat.Achieved == 1 ? match.Icon : match.IconGray;
+                        }
+                    }
                 }
-
-                string jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<PlayerAchievementsResponse>(jsonResponse);
-
-                return result?.PlayerStats?.Achievements ?? [];
+                return playerStats;
             }
-            catch
-            {
-                return [];
-            }
+            catch { return []; }
         }
     }
 }

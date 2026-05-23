@@ -11,69 +11,64 @@ namespace AchievementHunter.ViewModels
 {
     public partial class MainWindowViewModel(SteamApiService steamService) : ViewModelBase
     {
-        [ObservableProperty]
-        private string _statusMessage = "Ready to load library.";
+        [ObservableProperty] public partial string StatusMessage { get; set; } = "Ready to load library.";
+        [ObservableProperty] public partial bool IsLoading { get; set; } = false;
+        [ObservableProperty] public partial SteamGame? SelectedGame { get; set; }
 
-        [ObservableProperty]
-        private bool _isLoading = false;
+        // THE NEW TOGGLE (Defaults to True)
+        [ObservableProperty] public partial bool ShowOnlyAchievements { get; set; } = true;
 
-        // Tracks the currently clicked game in the UI
-        [ObservableProperty]
-        private SteamGame? _selectedGame;
-
-        public ObservableCollection<SteamGame> Games { get; } = [];
-        public ObservableCollection<SteamAchievement> Achievements { get; } = []; // New list for achievements
+        private List<SteamGame> _masterGameList = new();
+        public ObservableCollection<SteamGame> Games { get; } = new();
+        public ObservableCollection<SteamAchievement> Achievements { get; } = new();
 
         [RelayCommand]
         private async Task LoadLibraryAsync()
         {
             IsLoading = true;
             StatusMessage = "Fetching games from Steam...";
-            Games.Clear();
-            Achievements.Clear();
 
             try
             {
-                List<SteamGame> fetchedGames = await steamService.GetOwnedGamesAsync();
-                foreach (SteamGame game in fetchedGames)
-                {
-                    Games.Add(game);
-                }
+                _masterGameList = await steamService.GetOwnedGamesAsync();
+                ApplyGameFilter();
+                StatusMessage = $"Successfully loaded {_masterGameList.Count} games.";
+            }
+            catch (System.Exception ex) { StatusMessage = $"ERROR: {ex.Message}"; }
+            finally { IsLoading = false; }
+        }
 
-                StatusMessage = $"Successfully loaded {Games.Count} games.";
-            }
-            catch (System.Exception ex)
+        // Triggers instantly whenever you click the Toggle Switch in the UI
+        partial void OnShowOnlyAchievementsChanged(bool value) => ApplyGameFilter();
+
+        private void ApplyGameFilter()
+        {
+            Games.Clear();
+            foreach (var game in _masterGameList)
             {
-                StatusMessage = $"ERROR: {ex.Message}";
-            }
-            finally
-            {
-                IsLoading = false;
+                // If toggle is ON, skip games that don't have community stats
+                if (ShowOnlyAchievements && !game.HasCommunityVisibleStats)
+                    continue;
+                Games.Add(game);
             }
         }
 
-        // The Source Generator automatically triggers this method the exact millisecond you click a new game!
         async partial void OnSelectedGameChanged(SteamGame? value)
         {
             if (value == null)
                 return;
-
             Achievements.Clear();
             StatusMessage = $"Loading achievements for {value.Name}...";
 
-            List<SteamAchievement> fetchedAchievements = await steamService.GetAchievementsAsync(value.AppId);
-
+            var fetchedAchievements = await steamService.GetAchievementsAsync(value.AppId);
             if (fetchedAchievements.Count == 0)
             {
                 StatusMessage = $"{value.Name} does not have Steam achievements.";
                 return;
             }
-                
-            foreach (SteamAchievement ach in fetchedAchievements)
-            {
-                Achievements.Add(ach);
-            }
 
+            foreach (var ach in fetchedAchievements)
+                Achievements.Add(ach);
             int unlockedCount = fetchedAchievements.Count(a => a.Achieved == 1);
             StatusMessage = $"{value.Name}: {unlockedCount} / {fetchedAchievements.Count} Unlocked";
         }

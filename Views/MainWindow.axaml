@@ -1,4 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui"
+        xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AchievementHunter.ViewModels"
         xmlns:m="using:AchievementHunter.Models"
@@ -19,8 +20,16 @@
     <TextBlock Grid.Row="0" Text="Omni Tracker Dashboard" FontSize="28" FontWeight="Bold" Foreground="#c0caf5" Margin="0,0,0,15"/>
 
     <!-- Controls -->
-    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
       <Button Content="Load Library" Command="{Binding LoadLibraryCommand}" IsEnabled="{Binding !IsLoading}" Background="#2563eb" Foreground="White" FontWeight="Bold" Padding="15,8" CornerRadius="6"/>
+
+      <!-- THE NEW FILTER TOGGLE -->
+      <ToggleSwitch IsChecked="{Binding ShowOnlyAchievements}"
+                    OnContent="Achievements Only"
+                    OffContent="Show All Games"
+                    Foreground="#c0caf5"
+                    VerticalAlignment="Center"/>
+
       <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#9ece6a" FontStyle="Italic"/>
     </StackPanel>
 
@@ -50,19 +59,17 @@
                  BorderThickness="0">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="m:SteamAchievement">
-              <Grid ColumnDefinitions="Auto, *" Margin="0,5">
-                <!-- Unlock Status Indicator -->
-                <TextBlock Grid.Column="0"
-                           Text="{Binding Achieved, StringFormat='{}{0}'}"
-                           Foreground="{Binding Achieved, Converter={x:Null}}"
-                           FontSize="16" FontWeight="Bold" Margin="0,0,15,0"
-                           Width="20" TextAlignment="Center"/>
-                <!-- Achievement API Name -->
-                <TextBlock Grid.Column="1"
-                           Text="{Binding ApiName}"
-                           FontSize="15"
-                           Foreground="#a9b1d6"
-                           VerticalAlignment="Center"/>
+              <Grid ColumnDefinitions="Auto, *" Margin="0,8">
+                <!-- The Achievement Image -->
+                <Border Grid.Column="0" CornerRadius="6" ClipToBounds="True" Margin="0,0,15,0" Width="60" Height="60">
+                  <Image asyncImageLoader:ImageLoader.Source="{Binding IconUrl}" Stretch="UniformToFill"/>
+                </Border>
+
+                <!-- The Text -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding DisplayName}" FontSize="16" FontWeight="Bold" Foreground="#c0caf5"/>
+                  <TextBlock Text="{Binding Description}" FontSize="13" Foreground="#a9b1d6" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>

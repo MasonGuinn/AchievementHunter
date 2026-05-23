@@ -1,56 +1,75 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AchievementHunter.ViewModels"
+        xmlns:m="using:AchievementHunter.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="350"
-        Width="500" Height="350"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+        Width="800" Height="600"
         WindowStartupLocation="CenterScreen"
         x:Class="AchievementHunter.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Achievement Hunter - API Setup">
+        Title="Achievement Hunter - Library"
+        Background="#1a1b26">
 
   <Design.DataContext>
     <vm:MainWindowViewModel/>
   </Design.DataContext>
 
-  <!-- Center layout container with smooth spacing -->
-  <StackPanel VerticalAlignment="Center"
-              HorizontalAlignment="Center"
-              Spacing="20"
-              Width="400">
+  <Grid RowDefinitions="Auto, Auto, *" Margin="20">
 
-    <TextBlock Text="AH Engine Handshake"
-               FontSize="22"
+    <!-- Header Section -->
+    <TextBlock Grid.Row="0"
+               Text="Steam Library Dashboard"
+               FontSize="28"
                FontWeight="Bold"
-               HorizontalAlignment="Center"/>
+               Foreground="#c0caf5"
+               Margin="0,0,0,15"/>
 
-    <!-- Bordered card to show the live response from the engine -->
-    <Border Background="#1e1e24"
-            BorderBrush="#2d2d34"
-            BorderThickness="1"
-            CornerRadius="8"
-            Padding="15"
-            MinHeight="80">
-      <TextBlock Text="{Binding ConnectionStatus}"
-                 Foreground="#a9b1d6"
-                 TextWrapping="Wrap"
+    <!-- Controls & Status -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
+      <Button Content="Load Games"
+              Command="{Binding LoadLibraryCommand}"
+              IsEnabled="{Binding !IsLoading}"
+              Background="#2563eb"
+              Foreground="White"
+              FontWeight="Bold"
+              Padding="15,8"
+              CornerRadius="6"/>
+
+      <TextBlock Text="{Binding StatusMessage}"
                  VerticalAlignment="Center"
-                 HorizontalAlignment="Center"
-                 TextAlignment="Center"/>
-    </Border>
+                 Foreground="#9ece6a"
+                 FontStyle="Italic"/>
+    </StackPanel>
 
-    <!-- Asynchronous Trigger Button -->
-    <Button Content="Test Connection"
-            Command="{Binding TestConnectionCommand}"
-            IsEnabled="{Binding IsButtonEnabled}"
-            Background="#2563eb"
-            Foreground="White"
-            Padding="10,12"
-            CornerRadius="6"
-            HorizontalAlignment="Center"
-            HorizontalContentAlignment="Center"
-            Width="160"/>
-  </StackPanel>
+    <!-- Scrollable Game List -->
+    <Border Grid.Row="2"
+            Background="#24283b"
+            CornerRadius="8"
+            BorderBrush="#414868"
+            BorderThickness="1"
+            Padding="10">
+
+      <ListBox ItemsSource="{Binding Games}"
+               Background="Transparent"
+               BorderThickness="0">
+        <!-- This template dictates how every single game looks in the list -->
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="m:SteamGame">
+            <StackPanel Margin="0,5">
+              <TextBlock Text="{Binding Name}"
+                         FontSize="16"
+                         FontWeight="SemiBold"
+                         Foreground="#c0caf5"/>
+              <TextBlock Text="{Binding PlaytimeForever, StringFormat='{}Playtime: {0} minutes'}"
+                         FontSize="12"
+                         Foreground="#565f89"/>
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+  </Grid>
 </Window>

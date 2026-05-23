@@ -16,7 +16,7 @@ namespace AchievementHunter.Models
         public int GameCount { get; set; }
 
         [JsonPropertyName("games")]
-        public List<SteamGame> Games { get; set; } = new();
+        public List<SteamGame> Games { get; set; } = [];
     }
 
     public class SteamGame

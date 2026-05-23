@@ -1,8 +1,9 @@
-﻿using AchievementHunter.Services;
+﻿using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Data;
-using System.Threading.Tasks;
+using AchievementHunter.Models;
+using AchievementHunter.Services;
 
 namespace AchievementHunter.ViewModels
 {
@@ -11,39 +12,39 @@ namespace AchievementHunter.ViewModels
         private readonly SteamApiService _steamService = steamService;
 
         [ObservableProperty]
-        private string _connectionStatus = "Click 'Test Connection' to ping the Steam API.";
+        private string _statusMessage = "Ready to load library.";
 
-        // We use this to disable the button while loading so you don't spam the API
         [ObservableProperty]
-        private bool _isButtonEnabled = true;
+        private bool _isLoading = false;
 
-        // This automatically generates an ICommand named "TestConnectionCommand" for the UI
+        // ObservableCollection automatically updates the Avalonia UI when items are added
+        public ObservableCollection<SteamGame> Games { get; } = [];
+
         [RelayCommand]
-        private async Task TestConnectionAsync()
+        private async Task LoadLibraryAsync()
         {
-            IsButtonEnabled = false;
-            ConnectionStatus = "Pinging Valve servers...";
+            IsLoading = true;
+            StatusMessage = "Fetching games from Steam...";
+            Games.Clear(); // Clear the list in case you click the button twice
 
             try
             {
-                string rawJson = await _steamService.CheckConnectionAsync();
+                var fetchedGames = await _steamService.GetOwnedGamesAsync();
 
-                if (rawJson.Contains("personaname"))
+                foreach (var game in fetchedGames)
                 {
-                    ConnectionStatus = "SUCCESS! Secure connection established to the Steam Web API.";
+                    Games.Add(game);
                 }
-                else
-                {
-                    ConnectionStatus = "Connected successfully, but profile may be private.";
-                }
+
+                StatusMessage = $"Successfully loaded {Games.Count} games.";
             }
             catch (System.Exception ex)
             {
-                ConnectionStatus = $"CONNECTION FAILED:\n{ex.Message}";
+                StatusMessage = $"ERROR: {ex.Message}";
             }
             finally
             {
-                IsButtonEnabled = true;
+                IsLoading = false;
             }
         }
     }

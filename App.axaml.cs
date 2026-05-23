@@ -2,24 +2,21 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.Configuration;
 using AchievementHunter.ViewModels;
 using AchievementHunter.Views;
 using AchievementHunter.Services;
-using Microsoft.Extensions.Configuration;
 
 namespace AchievementHunter
 {
     public partial class App : Application
     {
-        public override void Initialize()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
+        public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
         public override void OnFrameworkInitializationCompleted()
         {
             // 1. Build the configuration to safely read your hidden user secrets once
-            var config = new ConfigurationBuilder()
+            IConfigurationRoot config = new ConfigurationBuilder()
                 .AddUserSecrets<App>()
                 .Build();
 

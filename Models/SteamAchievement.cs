@@ -15,7 +15,7 @@ namespace AchievementHunter.Models
         public bool Success { get; set; }
 
         [JsonPropertyName("achievements")]
-        public List<SteamAchievement> Achievements { get; set; } = new();
+        public List<SteamAchievement> Achievements { get; set; } = [];
     }
 
     public class SteamAchievement

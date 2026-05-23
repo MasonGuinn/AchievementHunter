@@ -66,11 +66,11 @@ namespace AchievementHunter.Services
         }
 
         /// <summary>
-        /// Fetches the user's entire Steam library, including AppIDs and Game Names.
+        /// Fetches the user's entire Steam library, including AppIDs and Game Names
         /// </summary>
         public async Task<List<SteamGame>> GetOwnedGamesAsync()
         {
-            // include_appinfo=1 is crucial—without it, Steam only returns numbers (AppIDs), not the actual game names!
+            // include_appinfo=1 is crucial. Without it, Steam only returns numbers (AppIDs), not the actual game names
             string endpoint = $"{_baseUrl}/IPlayerService/GetOwnedGames/v0001/?key={_apiKey}&steamid={_steamId}&include_appinfo=1&format=json";
 
             try
@@ -89,6 +89,35 @@ namespace AchievementHunter.Services
             catch (Exception ex)
             {
                 throw new Exception($"Failed to fetch game library: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Fetches the achievement unlock status for a specific game.
+        /// </summary>
+        public async Task<List<SteamAchievement>> GetAchievementsAsync(int appId)
+        {
+            string endpoint = $"{_baseUrl}/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appId}&key={_apiKey}&steamid={_steamId}";
+
+            try
+            {
+                HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
+
+                // Steam returns a 400 Bad Request if a game simply has no achievements.
+                // We catch this gracefully instead of crashing the app.
+                if (!response.IsSuccessStatusCode)
+                {
+                    return [];
+                }
+
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<PlayerAchievementsResponse>(jsonResponse);
+
+                return result?.PlayerStats?.Achievements ?? [];
+            }
+            catch
+            {
+                return [];
             }
         }
     }

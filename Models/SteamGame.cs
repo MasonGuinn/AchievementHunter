@@ -29,5 +29,8 @@ namespace AchievementHunter.Models
 
         [JsonPropertyName("playtime_forever")]
         public int PlaytimeForever { get; set; } // Tracked in total minutes
+
+        [JsonPropertyName("has_community_visible_stats")]
+        public bool HasCommunityVisibleStats { get; set; }
     }
 }

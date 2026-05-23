@@ -4,72 +4,71 @@
         xmlns:m="using:AchievementHunter.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-        Width="800" Height="600"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="650"
+        Width="900" Height="650"
         WindowStartupLocation="CenterScreen"
         x:Class="AchievementHunter.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Achievement Hunter - Library"
+        Title="Achievement Hunter - Dashboard"
         Background="#1a1b26">
-
-  <Design.DataContext>
-    <vm:MainWindowViewModel/>
-  </Design.DataContext>
 
   <Grid RowDefinitions="Auto, Auto, *" Margin="20">
 
-    <!-- Header Section -->
-    <TextBlock Grid.Row="0"
-               Text="Steam Library Dashboard"
-               FontSize="28"
-               FontWeight="Bold"
-               Foreground="#c0caf5"
-               Margin="0,0,0,15"/>
+    <!-- Header -->
+    <TextBlock Grid.Row="0" Text="Omni Tracker Dashboard" FontSize="28" FontWeight="Bold" Foreground="#c0caf5" Margin="0,0,0,15"/>
 
-    <!-- Controls & Status -->
+    <!-- Controls -->
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-      <Button Content="Load Games"
-              Command="{Binding LoadLibraryCommand}"
-              IsEnabled="{Binding !IsLoading}"
-              Background="#2563eb"
-              Foreground="White"
-              FontWeight="Bold"
-              Padding="15,8"
-              CornerRadius="6"/>
-
-      <TextBlock Text="{Binding StatusMessage}"
-                 VerticalAlignment="Center"
-                 Foreground="#9ece6a"
-                 FontStyle="Italic"/>
+      <Button Content="Load Library" Command="{Binding LoadLibraryCommand}" IsEnabled="{Binding !IsLoading}" Background="#2563eb" Foreground="White" FontWeight="Bold" Padding="15,8" CornerRadius="6"/>
+      <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#9ece6a" FontStyle="Italic"/>
     </StackPanel>
 
-    <!-- Scrollable Game List -->
-    <Border Grid.Row="2"
-            Background="#24283b"
-            CornerRadius="8"
-            BorderBrush="#414868"
-            BorderThickness="1"
-            Padding="10">
+    <!-- SPLIT VIEW: Left (Library) & Right (Achievements) -->
+    <Grid Grid.Row="2" ColumnDefinitions="1*, 1.5*">
 
-      <ListBox ItemsSource="{Binding Games}"
-               Background="Transparent"
-               BorderThickness="0">
-        <!-- This template dictates how every single game looks in the list -->
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="m:SteamGame">
-            <StackPanel Margin="0,5">
-              <TextBlock Text="{Binding Name}"
-                         FontSize="16"
-                         FontWeight="SemiBold"
-                         Foreground="#c0caf5"/>
-              <TextBlock Text="{Binding PlaytimeForever, StringFormat='{}Playtime: {0} minutes'}"
-                         FontSize="12"
-                         Foreground="#565f89"/>
-            </StackPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-    </Border>
+      <!-- LEFT PANEL: Game Library -->
+      <Border Grid.Column="0" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10" Margin="0,0,10,0">
+        <ListBox ItemsSource="{Binding Games}"
+                 SelectedItem="{Binding SelectedGame}"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="m:SteamGame">
+              <StackPanel Margin="0,5">
+                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Foreground="#c0caf5" TextWrapping="Wrap"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+
+      <!-- RIGHT PANEL: Achievement List -->
+      <Border Grid.Column="1" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10" Margin="10,0,0,0">
+        <ListBox ItemsSource="{Binding Achievements}"
+                 Background="Transparent"
+                 BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="m:SteamAchievement">
+              <Grid ColumnDefinitions="Auto, *" Margin="0,5">
+                <!-- Unlock Status Indicator -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Achieved, StringFormat='{}{0}'}"
+                           Foreground="{Binding Achieved, Converter={x:Null}}"
+                           FontSize="16" FontWeight="Bold" Margin="0,0,15,0"
+                           Width="20" TextAlignment="Center"/>
+                <!-- Achievement API Name -->
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ApiName}"
+                           FontSize="15"
+                           Foreground="#a9b1d6"
+                           VerticalAlignment="Center"/>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+
+    </Grid>
   </Grid>
 </Window>

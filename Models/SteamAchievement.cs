@@ -27,6 +27,9 @@ public class SteamAchievement
     public string DisplayName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string IconUrl { get; set; } = string.Empty;
+    public double GlobalPercentage { get; set; } = 0.0;
+    public string FormattedPercentage => $"{GlobalPercentage:0.0}% of players have this";
+    public bool IsRare => GlobalPercentage < 10.0;
 }
 
 // --- THE GAME SCHEMA ---
@@ -64,4 +67,24 @@ public class SchemaAchievement
 
     [JsonPropertyName("icongray")]
     public string IconGray { get; set; } = string.Empty; // Locked image
+}
+
+public class GlobalPercentageResponse
+{
+    [JsonPropertyName("achievementpercentages")]
+    public GlobalPercentageResult Percentages { get; set; } = new();
+}
+
+public class GlobalPercentageResult
+{
+    [JsonPropertyName("achievements")]
+    public List<GlobalAchievement> Achievements { get; set; } = [];
+}
+
+public class GlobalAchievement
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("percent")]
+    public double Percent { get; set; }
 }

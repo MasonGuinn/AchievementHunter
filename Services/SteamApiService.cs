@@ -97,27 +97,42 @@ namespace AchievementHunter.Services
         /// </summary>
         public async Task<List<SteamAchievement>> GetAchievementsAsync(int appId)
         {
-            string statsEndpoint = $"{_baseUrl}/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appId}&key={_apiKey}&steamid={_steamId}";
-            string schemaEndpoint = $"{_baseUrl}/ISteamUserStats/GetSchemaForGame/v2/?key={_apiKey}&appid={appId}";
+            string statsEndpoint = $"{_baseUrl}/ISteamUserStats/GetPlayerAchievements/v0001/?appid={appId}&key={_apiKey}&steamid={_steamId}&l=english";
+            string schemaEndpoint = $"{_baseUrl}/ISteamUserStats/GetSchemaForGame/v2/?key={_apiKey}&appid={appId}&l=english";
+            string globalEndpoint = $"{_baseUrl}/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid={appId}";
 
             try
             {
-                // 1. Fetch your personal progress
                 HttpResponseMessage statsResponse = await _httpClient.GetAsync(statsEndpoint);
+
                 if (!statsResponse.IsSuccessStatusCode)
+                {
+                    if ((int)statsResponse.StatusCode == 400)
+                        throw new Exception("0_PLAYTIME");
+
                     return new List<SteamAchievement>();
+                }
 
-                var statsResult = JsonSerializer.Deserialize<PlayerAchievementsResponse>(await statsResponse.Content.ReadAsStringAsync());
-                var playerStats = statsResult?.PlayerStats?.Achievements ?? [];
+                // CRITICAL FIX: Make the JSON parser bulletproof against Steam's inconsistent numerical formatting
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString |
+                                     System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals
+                };
 
-                // 2. Fetch the game dictionary (Images and Real Names)
+                var statsResult = JsonSerializer.Deserialize<PlayerAchievementsResponse>(await statsResponse.Content.ReadAsStringAsync(), jsonOptions);
+                var playerStats = statsResult?.PlayerStats?.Achievements ?? new List<SteamAchievement>();
+
+                if (playerStats.Count == 0)
+                    return playerStats;
+
                 HttpResponseMessage schemaResponse = await _httpClient.GetAsync(schemaEndpoint);
                 if (schemaResponse.IsSuccessStatusCode)
                 {
-                    var schemaResult = JsonSerializer.Deserialize<GameSchemaResponse>(await schemaResponse.Content.ReadAsStringAsync());
-                    var schemaStats = schemaResult?.Game?.AvailableGameStats?.Achievements ?? [];
+                    var schemaResult = JsonSerializer.Deserialize<GameSchemaResponse>(await schemaResponse.Content.ReadAsStringAsync(), jsonOptions);
+                    var schemaStats = schemaResult?.Game?.AvailableGameStats?.Achievements ?? new List<SchemaAchievement>();
 
-                    // 3. Merge them together
                     foreach (var stat in playerStats)
                     {
                         var match = schemaStats.Find(s => s.Name == stat.ApiName);
@@ -125,14 +140,31 @@ namespace AchievementHunter.Services
                         {
                             stat.DisplayName = match.DisplayName;
                             stat.Description = match.Description;
-                            // If unlocked, use the colored icon. If locked, use the gray icon.
                             stat.IconUrl = stat.Achieved == 1 ? match.Icon : match.IconGray;
                         }
                     }
                 }
+
+                HttpResponseMessage globalResponse = await _httpClient.GetAsync(globalEndpoint);
+                if (globalResponse.IsSuccessStatusCode)
+                {
+                    var globalResult = JsonSerializer.Deserialize<GlobalPercentageResponse>(await globalResponse.Content.ReadAsStringAsync(), jsonOptions);
+                    var globalStats = globalResult?.Percentages?.Achievements ?? new List<GlobalAchievement>();
+
+                    foreach (var stat in playerStats)
+                    {
+                        var match = globalStats.Find(g => g.Name == stat.ApiName);
+                        if (match != null)
+                            stat.GlobalPercentage = match.Percent;
+                    }
+                }
+
                 return playerStats;
             }
-            catch { return []; }
+            catch (Exception ex) when (ex.Message != "0_PLAYTIME")
+            {
+                throw new Exception($"API Fetch Error: {ex.Message}");
+            }
         }
     }
 }

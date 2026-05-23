@@ -14,9 +14,15 @@ namespace AchievementHunter.ViewModels
         [ObservableProperty] public partial string StatusMessage { get; set; } = "Ready to load library.";
         [ObservableProperty] public partial bool IsLoading { get; set; } = false;
         [ObservableProperty] public partial SteamGame? SelectedGame { get; set; }
-
-        // THE NEW TOGGLE (Defaults to True)
         [ObservableProperty] public partial bool ShowOnlyAchievements { get; set; } = true;
+
+        // NEW: Search Bar
+        [ObservableProperty] public partial string SearchQuery { get; set; } = string.Empty;
+
+        // NEW: Progress Bar Data
+        [ObservableProperty] public partial int UnlockedCount { get; set; } = 0;
+        [ObservableProperty] public partial int TotalCount { get; set; } = 0;
+        [ObservableProperty] public partial bool IsProgressVisible { get; set; } = false;
 
         private List<SteamGame> _masterGameList = new();
         public ObservableCollection<SteamGame> Games { get; } = new();
@@ -27,7 +33,6 @@ namespace AchievementHunter.ViewModels
         {
             IsLoading = true;
             StatusMessage = "Fetching games from Steam...";
-
             try
             {
                 _masterGameList = await steamService.GetOwnedGamesAsync();
@@ -38,16 +43,17 @@ namespace AchievementHunter.ViewModels
             finally { IsLoading = false; }
         }
 
-        // Triggers instantly whenever you click the Toggle Switch in the UI
         partial void OnShowOnlyAchievementsChanged(bool value) => ApplyGameFilter();
+        partial void OnSearchQueryChanged(string value) => ApplyGameFilter();
 
         private void ApplyGameFilter()
         {
             Games.Clear();
             foreach (var game in _masterGameList)
             {
-                // If toggle is ON, skip games that don't have community stats
                 if (ShowOnlyAchievements && !game.HasCommunityVisibleStats)
+                    continue;
+                if (!string.IsNullOrWhiteSpace(SearchQuery) && !game.Name.Contains(SearchQuery, System.StringComparison.OrdinalIgnoreCase))
                     continue;
                 Games.Add(game);
             }
@@ -58,19 +64,37 @@ namespace AchievementHunter.ViewModels
             if (value == null)
                 return;
             Achievements.Clear();
+            IsProgressVisible = false;
             StatusMessage = $"Loading achievements for {value.Name}...";
 
-            var fetchedAchievements = await steamService.GetAchievementsAsync(value.AppId);
-            if (fetchedAchievements.Count == 0)
+            try
             {
-                StatusMessage = $"{value.Name} does not have Steam achievements.";
-                return;
-            }
+                var fetchedAchievements = await steamService.GetAchievementsAsync(value.AppId);
+                if (fetchedAchievements.Count == 0)
+                {
+                    StatusMessage = $"{value.Name} does not have Steam achievements.";
+                    return;
+                }
 
-            foreach (var ach in fetchedAchievements)
-                Achievements.Add(ach);
-            int unlockedCount = fetchedAchievements.Count(a => a.Achieved == 1);
-            StatusMessage = $"{value.Name}: {unlockedCount} / {fetchedAchievements.Count} Unlocked";
+                // HIT LIST SORTING: Locked (0) comes first, then sorted by easiest to achieve globally
+                var sortedList = fetchedAchievements
+                    .OrderBy(a => a.Achieved)
+                    .ThenByDescending(a => a.GlobalPercentage)
+                    .ToList();
+
+                foreach (var ach in sortedList)
+                    Achievements.Add(ach);
+
+                // Update Progress Bar
+                UnlockedCount = fetchedAchievements.Count(a => a.Achieved == 1);
+                TotalCount = fetchedAchievements.Count;
+                IsProgressVisible = true;
+                StatusMessage = $"{value.Name} Loaded";
+            }
+            catch (System.Exception ex)
+            {
+                StatusMessage = $"Failed to load achievements: {ex.Message}";
+            }
         }
     }
 }

@@ -15,67 +15,77 @@
         Background="#1a1b26">
 
   <Grid RowDefinitions="Auto, Auto, *" Margin="20">
-
     <!-- Header -->
     <TextBlock Grid.Row="0" Text="Omni Tracker Dashboard" FontSize="28" FontWeight="Bold" Foreground="#c0caf5" Margin="0,0,0,15"/>
 
     <!-- Controls -->
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
       <Button Content="Load Library" Command="{Binding LoadLibraryCommand}" IsEnabled="{Binding !IsLoading}" Background="#2563eb" Foreground="White" FontWeight="Bold" Padding="15,8" CornerRadius="6"/>
-
-      <!-- THE NEW FILTER TOGGLE -->
-      <ToggleSwitch IsChecked="{Binding ShowOnlyAchievements}"
-                    OnContent="Achievements Only"
-                    OffContent="Show All Games"
-                    Foreground="#c0caf5"
-                    VerticalAlignment="Center"/>
-
+      <ToggleSwitch IsChecked="{Binding ShowOnlyAchievements}" OnContent="Achievements Only" OffContent="Show All Games" Foreground="#c0caf5" VerticalAlignment="Center"/>
       <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#9ece6a" FontStyle="Italic"/>
     </StackPanel>
 
-    <!-- SPLIT VIEW: Left (Library) & Right (Achievements) -->
-    <Grid Grid.Row="2" ColumnDefinitions="1*, 1.5*">
+    <!-- SPLIT VIEW -->
+    <Grid Grid.Row="2" ColumnDefinitions="1*, 1.8*">
 
-      <!-- LEFT PANEL: Game Library -->
-      <Border Grid.Column="0" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10" Margin="0,0,10,0">
-        <ListBox ItemsSource="{Binding Games}"
-                 SelectedItem="{Binding SelectedGame}"
-                 Background="Transparent"
-                 BorderThickness="0">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="m:SteamGame">
-              <StackPanel Margin="0,5">
-                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Foreground="#c0caf5" TextWrapping="Wrap"/>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Border>
+      <!-- LEFT PANEL: Game Library & Search -->
+      <Grid Grid.Column="0" RowDefinitions="Auto, *" Margin="0,0,10,0">
+        <!-- Search Box -->
+        <TextBox Grid.Row="0" Text="{Binding SearchQuery}" Watermark="Search games..." Background="#1e1e2e" Foreground="#c0caf5" Margin="0,0,0,10" Padding="10,8" CornerRadius="6" BorderBrush="#414868"/>
 
-      <!-- RIGHT PANEL: Achievement List -->
-      <Border Grid.Column="1" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10" Margin="10,0,0,0">
-        <ListBox ItemsSource="{Binding Achievements}"
-                 Background="Transparent"
-                 BorderThickness="0">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="m:SteamAchievement">
-              <Grid ColumnDefinitions="Auto, *" Margin="0,8">
-                <!-- The Achievement Image -->
-                <Border Grid.Column="0" CornerRadius="6" ClipToBounds="True" Margin="0,0,15,0" Width="60" Height="60">
-                  <Image asyncImageLoader:ImageLoader.Source="{Binding IconUrl}" Stretch="UniformToFill"/>
-                </Border>
-
-                <!-- The Text -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding DisplayName}" FontSize="16" FontWeight="Bold" Foreground="#c0caf5"/>
-                  <TextBlock Text="{Binding Description}" FontSize="13" Foreground="#a9b1d6" TextWrapping="Wrap" Margin="0,2,0,0"/>
+        <Border Grid.Row="1" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10">
+          <ListBox ItemsSource="{Binding Games}" SelectedItem="{Binding SelectedGame}" Background="Transparent" BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="m:SteamGame">
+                <StackPanel Margin="0,5">
+                  <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Foreground="#c0caf5" TextWrapping="Wrap"/>
                 </StackPanel>
-              </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Grid>
 
+      <!-- RIGHT PANEL: Progress Bar & Achievements -->
+      <Grid Grid.Column="1" RowDefinitions="Auto, *" Margin="10,0,0,0">
+
+        <!-- Visual Progress Bar -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,10" IsVisible="{Binding IsProgressVisible}">
+          <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,0,0,5">
+            <TextBlock Grid.Column="0" Text="Completion Status" FontWeight="Bold" Foreground="#a9b1d6"/>
+            <TextBlock Grid.Column="2" Text="{Binding UnlockedCount, StringFormat='{}{0} Unlocked'}" Foreground="#9ece6a" FontWeight="Bold"/>
+          </Grid>
+          <ProgressBar Minimum="0" Maximum="{Binding TotalCount}" Value="{Binding UnlockedCount}" Height="12" CornerRadius="6" Foreground="#7aa2f7" Background="#1e1e2e"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="#24283b" CornerRadius="8" BorderBrush="#414868" BorderThickness="1" Padding="10">
+          <ListBox ItemsSource="{Binding Achievements}" Background="Transparent" BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="m:SteamAchievement">
+                <Grid ColumnDefinitions="Auto, *, Auto" Margin="0,8">
+
+                  <!-- Image -->
+                  <Border Grid.Column="0" CornerRadius="6" ClipToBounds="True" Margin="0,0,15,0" Width="60" Height="60">
+                    <Image asyncImageLoader:ImageLoader.Source="{Binding IconUrl}" Stretch="UniformToFill"/>
+                  </Border>
+
+                  <!-- Text & Global Rarity -->
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding DisplayName}" FontSize="16" FontWeight="Bold" Foreground="#c0caf5"/>
+                    <TextBlock Text="{Binding Description}" FontSize="13" Foreground="#a9b1d6" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding FormattedPercentage}" FontSize="11" Foreground="#565f89" Margin="0,4,0,0"/>
+                  </StackPanel>
+
+                  <!-- Golden "Rare" Badge -->
+                  <Border Grid.Column="2" IsVisible="{Binding IsRare}" Background="#e0af68" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                    <TextBlock Text="RARE" FontSize="11" FontWeight="Heavy" Foreground="#1a1b26"/>
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Grid>
     </Grid>
   </Grid>
 </Window>
